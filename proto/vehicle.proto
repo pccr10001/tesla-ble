@@ -6,6 +6,8 @@ option go_package = "github.com/teslamotors/vehicle-command/pkg/protocol/protobu
 option java_package = "com.tesla.generated.carserver.vehicle";
 option java_outer_classname = "Vehicle";
 
+import "common.proto";
+
 message VehicleState {
     message GuestMode {
         bool GuestModeActive = 1;
@@ -19,5 +21,24 @@ message ClimateState {
         CopActivationTempLow = 1;
         CopActivationTempMedium = 2;
         CopActivationTempHigh = 3;
+    }
+}
+
+message VehicleData {
+    DriveState drive_state = 5;
+}
+
+message DriveState {
+    ShiftState        shift_state = 1;
+}
+
+message ShiftState {
+    oneof type {
+        Void Invalid = 1;
+        Void P = 2;
+        Void R = 3;
+        Void N = 4;
+        Void D = 5;
+        Void SNA = 6;
     }
 }

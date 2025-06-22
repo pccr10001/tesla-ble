@@ -22,6 +22,7 @@ message VehicleAction {
     reserved 60;
     reserved 76;
     oneof vehicle_action_msg {
+        GetVehicleData getVehicleData = 1;
         ChargingSetLimitAction chargingSetLimitAction = 5;
         ChargingStartStopAction chargingStartStopAction = 6;
         DrivingClearSpeedLimitPinAction drivingClearSpeedLimitPinAction = 7;
@@ -76,11 +77,21 @@ message EraseUserDataAction {
 message Response {
     ActionStatus actionStatus = 1;
     oneof response_msg {
+        VehicleData getVehicleData = 2;
         Signatures.SessionInfo getSessionInfoResponse = 3;
         NearbyChargingSites getNearbyChargingSites = 5;
         Ping ping = 9;
     }
 }
+
+message GetVehicleData {
+    GetDriveState getDriveState = 4;
+}
+
+message GetDriveState {
+}
+
+
 
 message ActionStatus {
     OperationStatus_E result = 1;
