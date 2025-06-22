@@ -64,7 +64,8 @@ namespace TeslaBLE
         const char *VIN,
         uint32_t expires_at,
         pb_byte_t *output_buffer,
-        size_t *output_length) const;
+        size_t *output_length,
+        uint32_t flags) const;
     int ConstructResponseADBuffer(
         Signatures_SignatureType signature_type,
         const char *VIN,
