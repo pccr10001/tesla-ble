@@ -558,6 +558,7 @@ namespace TeslaBLE
     memcpy(session_info_request.public_key.bytes, this->public_key_, this->public_key_size_);
     session_info_request.public_key.size = this->public_key_size_;
     universal_message.payload.session_info_request = session_info_request;
+    universal_message.flags = UniversalMessage_Flags_FLAG_ENCRYPT_RESPONSE;
 
     // generate unique uuid for the request
     pb_byte_t uuid[16];
