@@ -460,11 +460,11 @@ namespace TeslaBLE
       // std::string epoch_hex;
       const pb_byte_t *epoch = session->getEpoch();
 
-      pb_byte_t ad_buffer[56];
+      pb_byte_t ad_buffer[62];
       size_t ad_buffer_length = 0;
       session->ConstructADBuffer(
           Signatures_SignatureType_SIGNATURE_TYPE_AES_GCM_PERSONALIZED,
-          this->VIN, expires_at, ad_buffer, &ad_buffer_length);
+          this->VIN, expires_at, ad_buffer, &ad_buffer_length, flags);
 
       pb_byte_t nonce[12];
       int return_code = session->Encrypt(payload, payload_length, encrypted_payload, sizeof encrypted_payload, &encrypted_output_length, signature, ad_buffer, ad_buffer_length, nonce);

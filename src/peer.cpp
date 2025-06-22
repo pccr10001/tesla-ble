@@ -244,7 +244,8 @@ namespace TeslaBLE
       const char *VIN,
       uint32_t expires_at,
       pb_byte_t *output_buffer,
-      size_t *output_length) const
+      size_t *output_length,
+      uint32_t flags) const
   {
     size_t index = 0;
 
@@ -286,6 +287,16 @@ namespace TeslaBLE
     output_buffer[index++] = (this->counter_ >> 16) & 0xFF;
     output_buffer[index++] = (this->counter_ >> 8) & 0xFF;
     output_buffer[index++] = this->counter_ & 0xFF;
+
+    if(flags>0){
+      // Flags
+      output_buffer[index++] = Signatures_Tag_TAG_FLAGS;
+      output_buffer[index++] = 0x01;
+      output_buffer[index++] = (flags >> 24) & 0xFF;
+      output_buffer[index++] = (flags >> 16) & 0xFF;
+      output_buffer[index++] = (flags >> 8) & 0xFF;
+      output_buffer[index++] = flags & 0xFF;
+    }
 
     // Terminal byte
     output_buffer[index++] = Signatures_Tag_TAG_END;
