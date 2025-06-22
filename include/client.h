@@ -178,13 +178,19 @@ namespace TeslaBLE
         pb_byte_t *output_buffer,
         size_t *output_length);
 
+    int buildCarServerActionPayloadWithEncryptResponse(
+        CarServer_Action *action,
+        pb_byte_t *output_buffer,
+        size_t *output_length);
+
     int buildUniversalMessageWithPayload(
         pb_byte_t *payload,
         size_t payload_length,
         UniversalMessage_Domain domain,
         pb_byte_t *output_buffer,
         size_t *output_length,
-        bool encryptPayload = false);
+        bool encryptPayload = false,
+        uint32_t flags = 0);
 
     int buildVCSECInformationRequestMessage(
         VCSEC_InformationRequestType request_type,
@@ -227,6 +233,10 @@ namespace TeslaBLE
 
     int buildSentrySwitchMessage(
         bool isOn,
+        pb_byte_t *output_buffer,
+        size_t *output_length);
+
+    int buildGetVehicleDataMessage(
         pb_byte_t *output_buffer,
         size_t *output_length);
 

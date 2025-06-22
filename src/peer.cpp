@@ -301,6 +301,63 @@ namespace TeslaBLE
     return 0;
   }
 
+  int Peer::ConstructResponseADBuffer(
+      Signatures_SignatureType signature_type,
+      const char *VIN,
+      uint32_t custom_counter,
+      uint32_t custom_expires_at,
+      pb_byte_t *output_buffer,
+      size_t *output_length) const
+  {
+    size_t index = 0;
+
+    // Signature type
+    output_buffer[index++] = Signatures_Tag_TAG_SIGNATURE_TYPE;
+    output_buffer[index++] = 0x01;
+    output_buffer[index++] = signature_type;
+
+    // Domain
+    output_buffer[index++] = Signatures_Tag_TAG_DOMAIN;
+    output_buffer[index++] = 0x01;
+    output_buffer[index++] = this->domain;
+
+    // Personalization (VIN)
+    size_t vin_length = strlen(VIN);
+    output_buffer[index++] = Signatures_Tag_TAG_PERSONALIZATION;
+    output_buffer[index++] = vin_length;
+    memcpy(output_buffer + index, VIN, vin_length);
+    index += vin_length;
+
+    // Epoch
+    output_buffer[index++] = Signatures_Tag_TAG_EPOCH;
+    output_buffer[index++] = 0x10; // Assuming epoch is always 16 bytes
+    memcpy(output_buffer + index, &this->epoch_, 16);
+    index += 16;
+
+    // Expires at
+    output_buffer[index++] = Signatures_Tag_TAG_EXPIRES_AT;
+    output_buffer[index++] = 0x04;
+    output_buffer[index++] = (custom_expires_at >> 24) & 0xFF;
+    output_buffer[index++] = (custom_expires_at >> 16) & 0xFF;
+    output_buffer[index++] = (custom_expires_at >> 8) & 0xFF;
+    output_buffer[index++] = custom_expires_at & 0xFF;
+
+    // Custom counter (from response signature data)
+    output_buffer[index++] = Signatures_Tag_TAG_COUNTER;
+    output_buffer[index++] = 0x04;
+    output_buffer[index++] = (custom_counter >> 24) & 0xFF;
+    output_buffer[index++] = (custom_counter >> 16) & 0xFF;
+    output_buffer[index++] = (custom_counter >> 8) & 0xFF;
+    output_buffer[index++] = custom_counter & 0xFF;
+
+    // Terminal byte
+    output_buffer[index++] = Signatures_Tag_TAG_END;
+
+    *output_length = index;
+
+    return 0;
+  }
+
   int Peer::Encrypt(pb_byte_t *input_buffer, size_t input_buffer_length,
                     pb_byte_t *output_buffer, size_t output_buffer_length,
                     size_t *output_length, pb_byte_t *signature_buffer,
@@ -403,6 +460,111 @@ namespace TeslaBLE
     signature_buffer_hex[tag_length * 2] = '\0';
 
     LOG_DEBUG("[Encrypt] Nonce: %s, Ciphertext: %s, Tag: %s",
+              nonce_hex, output_buffer_hex, signature_buffer_hex);
+
+    return 0;
+  }
+
+  int Peer::Decrypt(pb_byte_t *input_buffer, size_t input_buffer_length,
+                    pb_byte_t *output_buffer, size_t output_buffer_length,
+                    size_t *output_length, pb_byte_t *signature_buffer,
+                    pb_byte_t *ad_buffer, size_t ad_buffer_length, pb_byte_t nonce[12]) const
+  {
+    if (!isPrivateKeyInitialized())
+    {
+      LOG_ERROR("[Decrypt] Private key is not initialized");
+      return TeslaBLE_Status_E_ERROR_PRIVATE_KEY_NOT_INITIALIZED;
+    }
+
+    mbedtls_gcm_context aes_context;
+    mbedtls_gcm_init(&aes_context);
+
+    size_t shared_secret_size = this->SHARED_KEY_SIZE_BYTES;
+
+    if (shared_secret_size != this->SHARED_KEY_SIZE_BYTES)
+    {
+      LOG_ERROR("[Decrypt] Shared secret SHA1 is not 16 bytes (actual size = %u)", shared_secret_size);
+      return TeslaBLE_Status_E_ERROR_DECRYPT;
+    }
+
+    // Use 128-bit key as specified in the protocol
+    int return_code = mbedtls_gcm_setkey(&aes_context, MBEDTLS_CIPHER_ID_AES, this->shared_secret_sha1_, 128);
+    if (return_code != 0)
+    {
+      LOG_ERROR("[Decrypt] GCM set key error: -0x%04x", (unsigned int)-return_code);
+      return TeslaBLE_Status_E_ERROR_DECRYPT;
+    }
+
+    size_t nonce_size = 12;
+
+    return_code = mbedtls_gcm_starts(&aes_context, MBEDTLS_GCM_DECRYPT,
+                                     nonce, nonce_size);
+    if (return_code != 0)
+    {
+      LOG_ERROR("[Decrypt] GCM start error: -0x%04x", (unsigned int)-return_code);
+      return TeslaBLE_Status_E_ERROR_DECRYPT;
+    }
+
+    // Hash the AD buffer to create the AAD as per the protocol
+    unsigned char ad_hash[32]; // SHA256 produces a 32-byte hash
+    return_code = mbedtls_sha256(ad_buffer, ad_buffer_length, ad_hash, 0);
+    if (return_code != 0)
+    {
+      LOG_ERROR("[Decrypt] AD metadata SHA256 hash error: -0x%04x", (unsigned int)-return_code);
+      return TeslaBLE_Status_E_ERROR_DECRYPT;
+    }
+    // Use the hash as the AAD for AES-GCM
+    mbedtls_gcm_update_ad(&aes_context, ad_hash, sizeof(ad_hash));
+
+    return_code = mbedtls_gcm_update(&aes_context, input_buffer, input_buffer_length,
+                                     output_buffer, output_buffer_length, output_length);
+    if (return_code != 0)
+    {
+      LOG_ERROR("[Decrypt] Decryption error in gcm_update: -0x%04x", (unsigned int)-return_code);
+      return TeslaBLE_Status_E_ERROR_DECRYPT;
+    }
+
+    size_t finish_buffer_length = 0;
+    pb_byte_t finish_buffer[15]; // output_size never needs to be more than 15.
+    // Finalize the decryption and verify the tag
+    size_t tag_length = 16; // AES-GCM typically uses a 16-byte tag
+    return_code = mbedtls_gcm_finish(&aes_context, finish_buffer, sizeof(finish_buffer),
+                                     &finish_buffer_length, signature_buffer, tag_length);
+    if (return_code != 0)
+    {
+      LOG_ERROR("[Decrypt] Finalization error in gcm_finish: -0x%04x", (unsigned int)-return_code);
+      return TeslaBLE_Status_E_ERROR_DECRYPT;
+    }
+
+    mbedtls_gcm_free(&aes_context);
+
+    // Log decrypted data
+    char nonce_hex[25];
+    char output_buffer_hex[*output_length * 2 + 1];
+    char signature_buffer_hex[tag_length * 2 + 1];
+
+    // Convert nonce to hex
+    for (int i = 0; i < 12; i++)
+    {
+      snprintf(nonce_hex + (i * 2), 3, "%02x", nonce[i]);
+    }
+    nonce_hex[24] = '\0';
+
+    // Convert output buffer to hex
+    for (size_t i = 0; i < *output_length; i++)
+    {
+      snprintf(output_buffer_hex + (i * 2), 3, "%02x", output_buffer[i]);
+    }
+    output_buffer_hex[*output_length * 2] = '\0';
+
+    // Convert signature buffer to hex
+    for (size_t i = 0; i < tag_length; i++)
+    {
+      snprintf(signature_buffer_hex + (i * 2), 3, "%02x", signature_buffer[i]);
+    }
+    signature_buffer_hex[tag_length * 2] = '\0';
+
+    LOG_DEBUG("[Decrypt] Nonce: %s, Plaintext: %s, Tag: %s",
               nonce_hex, output_buffer_hex, signature_buffer_hex);
 
     return 0;

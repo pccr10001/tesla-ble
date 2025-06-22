@@ -65,7 +65,20 @@ namespace TeslaBLE
         uint32_t expires_at,
         pb_byte_t *output_buffer,
         size_t *output_length) const;
+    int ConstructResponseADBuffer(
+        Signatures_SignatureType signature_type,
+        const char *VIN,
+        uint32_t custom_counter,
+        uint32_t custom_expires_at,
+        pb_byte_t *output_buffer,
+        size_t *output_length) const;
     int Encrypt(
+        pb_byte_t *input_buffer, size_t input_buffer_length,
+        pb_byte_t *output_buffer, size_t output_buffer_length,
+        size_t *output_length, pb_byte_t *signature_buffer,
+        pb_byte_t *ad_buffer, size_t ad_buffer_length,
+        pb_byte_t nonce[12]) const;
+    int Decrypt(
         pb_byte_t *input_buffer, size_t input_buffer_length,
         pb_byte_t *output_buffer, size_t output_buffer_length,
         size_t *output_length, pb_byte_t *signature_buffer,

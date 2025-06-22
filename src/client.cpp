@@ -415,7 +415,8 @@ namespace TeslaBLE
                                                UniversalMessage_Domain domain,
                                                pb_byte_t *output_buffer,
                                                size_t *output_length,
-                                               bool encryptPayload)
+                                               bool encryptPayload,
+                                               uint32_t flags)
   {
     UniversalMessage_RoutableMessage universal_message = UniversalMessage_RoutableMessage_init_default;
 
@@ -504,10 +505,8 @@ namespace TeslaBLE
       universal_message.payload.protobuf_message_as_bytes.size = payload_length;
     }
 
-    // set gcm data
-    if (encryptPayload)
-    {
-    }
+    // set flags if provided
+    universal_message.flags = flags;
 
     // random 16 bytes using rand()
     pb_byte_t uuid[16];
@@ -610,7 +609,7 @@ namespace TeslaBLE
     // build universal message
     return this->buildUniversalMessageWithPayload(
         payload_buffer, payload_length, UniversalMessage_Domain_DOMAIN_VEHICLE_SECURITY,
-        output_buffer, output_length, encryptPayload);
+        output_buffer, output_length, encryptPayload, 0);
   }
 
   int Client::buildKeySummary(pb_byte_t *output_buffer,
@@ -652,7 +651,32 @@ namespace TeslaBLE
     // build universal message
     return_code = this->buildUniversalMessageWithPayload(
         payload_buffer, payload_length, UniversalMessage_Domain_DOMAIN_INFOTAINMENT,
-        output_buffer, output_length, true);
+        output_buffer, output_length, true, 0);
+    if (return_code != 0)
+    {
+      LOG_ERROR("Failed to build car action message");       
+      return 1;
+    }
+    return 0;
+  }
+
+  int Client::buildCarServerActionPayloadWithEncryptResponse(CarServer_Action *action,
+                                          pb_byte_t *output_buffer,
+                                          size_t *output_length)
+  {
+    pb_byte_t payload_buffer[UniversalMessage_RoutableMessage_size];
+    size_t payload_length = 0;
+    int return_code = pb_encode_fields(payload_buffer, &payload_length, CarServer_Action_fields, action);
+    if (return_code != 0)
+    {
+      LOG_ERROR("Failed to encode car action message");
+      return TeslaBLE_Status_E_ERROR_PB_ENCODING;
+    }
+
+    // build universal message with FLAG_ENCRYPT_RESPONSE
+    return_code = this->buildUniversalMessageWithPayload(
+        payload_buffer, payload_length, UniversalMessage_Domain_DOMAIN_INFOTAINMENT,
+        output_buffer, output_length, true, UniversalMessage_Flags_FLAG_ENCRYPT_RESPONSE);
     if (return_code != 0)
     {
       LOG_ERROR("Failed to build car action message");       
@@ -796,6 +820,35 @@ namespace TeslaBLE
         },
         output_buffer,
         output_length);
+  }
+
+  int Client::buildGetVehicleDataMessage(pb_byte_t *output_buffer, size_t *output_length)
+  {
+    CarServer_Action action = CarServer_Action_init_default;
+    action.which_action_msg = CarServer_Action_vehicleAction_tag;
+
+    CarServer_VehicleAction vehicle_action = CarServer_VehicleAction_init_default;
+    vehicle_action.which_vehicle_action_msg = CarServer_VehicleAction_getVehicleData_tag;
+
+    CarServer_GetVehicleData get_vehicle_data = CarServer_GetVehicleData_init_default;
+    get_vehicle_data.has_getDriveState = true;
+    get_vehicle_data.getDriveState = CarServer_GetDriveState_init_default;
+
+    vehicle_action.vehicle_action_msg.getVehicleData = get_vehicle_data;
+    action.action_msg.vehicleAction = vehicle_action;
+
+    size_t universal_encode_buffer_size = UniversalMessage_RoutableMessage_size;
+    pb_byte_t universal_encode_buffer[universal_encode_buffer_size];
+
+    int status = buildCarServerActionPayloadWithEncryptResponse(&action, universal_encode_buffer, &universal_encode_buffer_size);
+    if (status != 0)
+    {
+      LOG_ERROR("Failed to build getVehicleData message");
+      return status;
+    }
+
+    prependLength(universal_encode_buffer, universal_encode_buffer_size, output_buffer, output_length);
+    return 0;
   }
 
   int Client::buildVCSECActionMessage(const VCSEC_RKEAction_E action, pb_byte_t *output_buffer,
