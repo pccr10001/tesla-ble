@@ -291,7 +291,7 @@ namespace TeslaBLE
     if(flags>0){
       // Flags
       output_buffer[index++] = Signatures_Tag_TAG_FLAGS;
-      output_buffer[index++] = 0x01;
+      output_buffer[index++] = 0x04;
       output_buffer[index++] = (flags >> 24) & 0xFF;
       output_buffer[index++] = (flags >> 16) & 0xFF;
       output_buffer[index++] = (flags >> 8) & 0xFF;
