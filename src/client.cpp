@@ -452,7 +452,7 @@ namespace TeslaBLE
       pb_byte_t encrypted_payload[100];
       size_t encrypted_output_length = 0;
 
-      uint32_t expires_at = session->generateExpiresAt(10);
+      uint32_t expires_at = session->generateExpiresAt(20);
 
       // Next, we construct the serialized metadata string from values in the table
       // below. The metadata string is used as the associated authenticated data (AAD)
