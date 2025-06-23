@@ -508,7 +508,6 @@ namespace TeslaBLE
       LOG_ERROR("[Decrypt] Shared secret SHA1 is not 16 bytes (actual size = %u)", shared_secret_size);
       return TeslaBLE_Status_E_ERROR_DECRYPT;
     }
-    ESP_LOGD(TAG, "Decrypting with shared secret: %s", format_hex(this->shared_secret_sha1_, this->SHARED_KEY_SIZE_BYTES).c_str());
     // Use 128-bit key as specified in the protocol
     int return_code = mbedtls_gcm_setkey(&aes_context, MBEDTLS_CIPHER_ID_AES, this->shared_secret_sha1_, 128);
     if (return_code != 0)
