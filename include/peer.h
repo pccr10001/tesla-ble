@@ -71,7 +71,7 @@ namespace TeslaBLE
         const char *VIN,
         uint32_t custom_counter,
         uint32_t flags,
-        const char *request_hash,
+        pb_byte_t *request_hash,
         uint32_t fault,
         pb_byte_t *output_buffer,
         size_t *output_length) const;
