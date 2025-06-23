@@ -70,7 +70,9 @@ namespace TeslaBLE
         Signatures_SignatureType signature_type,
         const char *VIN,
         uint32_t custom_counter,
-        uint32_t custom_expires_at,
+        uint32_t flags,
+        const char *request_hash,
+        uint32_t fault,
         pb_byte_t *output_buffer,
         size_t *output_length) const;
     int Encrypt(

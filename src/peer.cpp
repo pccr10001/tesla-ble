@@ -288,7 +288,7 @@ namespace TeslaBLE
     output_buffer[index++] = (this->counter_ >> 8) & 0xFF;
     output_buffer[index++] = this->counter_ & 0xFF;
 
-    if(flags>0){
+    if(flags > 0){
       // Flags
       output_buffer[index++] = Signatures_Tag_TAG_FLAGS;
       output_buffer[index++] = 0x04;
@@ -316,7 +316,9 @@ namespace TeslaBLE
       Signatures_SignatureType signature_type,
       const char *VIN,
       uint32_t custom_counter,
-      uint32_t custom_expires_at,
+      uint32_t flags,
+      const char *request_hash,
+      uint32_t fault,
       pb_byte_t *output_buffer,
       size_t *output_length) const
   {
@@ -339,20 +341,6 @@ namespace TeslaBLE
     memcpy(output_buffer + index, VIN, vin_length);
     index += vin_length;
 
-    // Epoch
-    output_buffer[index++] = Signatures_Tag_TAG_EPOCH;
-    output_buffer[index++] = 0x10; // Assuming epoch is always 16 bytes
-    memcpy(output_buffer + index, &this->epoch_, 16);
-    index += 16;
-
-    // Expires at
-    output_buffer[index++] = Signatures_Tag_TAG_EXPIRES_AT;
-    output_buffer[index++] = 0x04;
-    output_buffer[index++] = (custom_expires_at >> 24) & 0xFF;
-    output_buffer[index++] = (custom_expires_at >> 16) & 0xFF;
-    output_buffer[index++] = (custom_expires_at >> 8) & 0xFF;
-    output_buffer[index++] = custom_expires_at & 0xFF;
-
     // Custom counter (from response signature data)
     output_buffer[index++] = Signatures_Tag_TAG_COUNTER;
     output_buffer[index++] = 0x04;
@@ -360,6 +348,29 @@ namespace TeslaBLE
     output_buffer[index++] = (custom_counter >> 16) & 0xFF;
     output_buffer[index++] = (custom_counter >> 8) & 0xFF;
     output_buffer[index++] = custom_counter & 0xFF;
+
+    // Flags
+    output_buffer[index++] = Signatures_Tag_TAG_FLAGS;
+    output_buffer[index++] = 0x04;
+    output_buffer[index++] = (flags >> 24) & 0xFF;
+    output_buffer[index++] = (flags >> 16) & 0xFF;
+    output_buffer[index++] = (flags >> 8) & 0xFF;
+    output_buffer[index++] = flags & 0xFF;
+
+    // Request hash
+    output_buffer[index++] = Signatures_Tag_TAG_REQUEST_HASH;
+    output_buffer[index++] = 17;
+    output_buffer[index++] = signature_type;
+    memcpy(output_buffer + index, request_hash, 16);
+    index += 16;
+
+    // Fault
+    output_buffer[index++] = Signatures_Tag_TAG_FAULT;
+    output_buffer[index++] = 0x04;
+    output_buffer[index++] = (fault >> 24) & 0xFF;
+    output_buffer[index++] = (fault >> 16) & 0xFF;
+    output_buffer[index++] = (fault >> 8) & 0xFF;
+    output_buffer[index++] = fault & 0xFF;
 
     // Terminal byte
     output_buffer[index++] = Signatures_Tag_TAG_END;

@@ -23,6 +23,8 @@ typedef enum _Signatures_Tag {
     Signatures_Tag_TAG_COUNTER = 5,
     Signatures_Tag_TAG_CHALLENGE = 6,
     Signatures_Tag_TAG_FLAGS = 7,
+    Signatures_Tag_TAG_REQUEST_HASH = 8,
+    Signatures_Tag_TAG_FAULT = 9,
     Signatures_Tag_TAG_END = 255
 } Signatures_Tag;
 
