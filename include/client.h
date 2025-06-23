@@ -109,6 +109,8 @@ namespace TeslaBLE
 
     const char* getVIN() const { return VIN; }
 
+    pb_byte_t* getRequestHash() { return request_hash; }
+
     void setConnectionID(const pb_byte_t *connectionID);
 
     int loadPrivateKey(
