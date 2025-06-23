@@ -360,7 +360,7 @@ namespace TeslaBLE
     // Request hash
     output_buffer[index++] = Signatures_Tag_TAG_REQUEST_HASH;
     output_buffer[index++] = 17;
-    output_buffer[index++] = signature_type;
+    output_buffer[index++] = Signatures_SignatureType_SIGNATURE_TYPE_AES_GCM_PERSONALIZED;
     memcpy(output_buffer + index, request_hash, 16);
     index += 16;
 
