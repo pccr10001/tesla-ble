@@ -416,7 +416,8 @@ namespace TeslaBLE
                                                pb_byte_t *output_buffer,
                                                size_t *output_length,
                                                bool encryptPayload,
-                                               uint32_t flags)
+                                               uint32_t flags,
+                                               pb_byte_t *request_hash)
   {
     UniversalMessage_RoutableMessage universal_message = UniversalMessage_RoutableMessage_init_default;
 
@@ -498,6 +499,9 @@ namespace TeslaBLE
 
       universal_message.which_sub_sigData = UniversalMessage_RoutableMessage_signature_data_tag;
       universal_message.sub_sigData.signature_data = signature_data;
+      if(request_hash != nullptr){
+        memcpy(request_hash, signature, sizeof signature);
+      }
     }
     else
     {
@@ -651,7 +655,7 @@ namespace TeslaBLE
     // build universal message
     return_code = this->buildUniversalMessageWithPayload(
         payload_buffer, payload_length, UniversalMessage_Domain_DOMAIN_INFOTAINMENT,
-        output_buffer, output_length, true, 0);
+        output_buffer, output_length, true, 0, nullptr);
     if (return_code != 0)
     {
       LOG_ERROR("Failed to build car action message");       
@@ -676,7 +680,7 @@ namespace TeslaBLE
     // build universal message with FLAG_ENCRYPT_RESPONSE
     return_code = this->buildUniversalMessageWithPayload(
         payload_buffer, payload_length, UniversalMessage_Domain_DOMAIN_INFOTAINMENT,
-        output_buffer, output_length, true, 1 << UniversalMessage_Flags_FLAG_ENCRYPT_RESPONSE );
+        output_buffer, output_length, true, 1 << UniversalMessage_Flags_FLAG_ENCRYPT_RESPONSE, this->request_hash);
     if (return_code != 0)
     {
       LOG_ERROR("Failed to build car action message");       

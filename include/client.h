@@ -192,7 +192,8 @@ namespace TeslaBLE
         pb_byte_t *output_buffer,
         size_t *output_length,
         bool encryptPayload = false,
-        uint32_t flags = 0);
+        uint32_t flags = 0,
+        pb_byte_t *request_hash = nullptr);
 
     int buildVCSECInformationRequestMessage(
         VCSEC_InformationRequestType request_type,
@@ -266,6 +267,7 @@ namespace TeslaBLE
     unsigned char public_key_[MBEDTLS_ECP_MAX_BYTES];
     size_t public_key_size_;
     pb_byte_t connectionID[16];
+    pb_byte_t request_hash[16];
     const char *VIN = "";
 
     static void prependLength(
