@@ -676,7 +676,7 @@ namespace TeslaBLE
     // build universal message with FLAG_ENCRYPT_RESPONSE
     return_code = this->buildUniversalMessageWithPayload(
         payload_buffer, payload_length, UniversalMessage_Domain_DOMAIN_INFOTAINMENT,
-        output_buffer, output_length, true, UniversalMessage_Flags_FLAG_ENCRYPT_RESPONSE);
+        output_buffer, output_length, true, 1 << UniversalMessage_Flags_FLAG_ENCRYPT_RESPONSE );
     if (return_code != 0)
     {
       LOG_ERROR("Failed to build car action message");       
