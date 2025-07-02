@@ -360,9 +360,13 @@ namespace TeslaBLE
                                        size_t input_buffer_length,
                                        UniversalMessage_RoutableMessage *output)
   {
-    pb_byte_t temp[input_buffer_length - 2];
-    memcpy(&temp, input_buffer + 2, input_buffer_length - 2);
-    return parseUniversalMessage(temp, sizeof(temp), output);
+    // The first 2 bytes are the length, we can skip them.
+    // By passing a pointer to the buffer instead of creating a copy on the stack,
+    // we can avoid a potential stack overflow for large messages.
+    if (input_buffer_length < 2) {
+      return -1;
+    }
+    return parseUniversalMessage(input_buffer + 2, input_buffer_length - 2, output);
   }
 
   int Client::parsePayloadSessionInfo(UniversalMessage_RoutableMessage_session_info_t *input_buffer,
